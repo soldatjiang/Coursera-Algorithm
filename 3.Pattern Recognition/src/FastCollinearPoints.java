@@ -1,14 +1,15 @@
 import java.util.Arrays;
-
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdDraw;
 import edu.princeton.cs.algs4.StdOut;
 
 public class FastCollinearPoints {
     private Point[] pts;
+    private Point[] ptsCopy;
     private int num;
     private LineSegment[] lineSeg;
     private int numLineSeg=0;
+    private double lastSlope=Double.NEGATIVE_INFINITY;
 
     public FastCollinearPoints(Point[] points){
         if(points==null)
@@ -25,25 +26,23 @@ public class FastCollinearPoints {
         }
 
         pts=Arrays.copyOf(points,points.length);
+        ptsCopy=Arrays.copyOf(points,points.length);
         num=points.length;
         lineSeg=new LineSegment[4*points.length];
 
-        Point origin;
-        Point[] temp=new Point[4];
+        Arrays.sort(pts);
+        //Point origin;
+        //Point[] temp=new Point[4];
         for(int i=0;i<pts.length;i++){
-            origin=pts[i];
-            temp[0]=origin;
-            Arrays.sort(pts,pts[i].slopeOrder());
-            for(int j=1;j<pts.length-2;j++){
-                if(Double.compare(pts[j].slopeTo(origin),pts[j+1].slopeTo(origin))==0 &&
-                        Double.compare(pts[j+1].slopeTo(origin),pts[j+2].slopeTo(origin))==0){
-                    for(int k=1;k<=3;k++)
-                        temp[k]=pts[k];
+            //Point[] other=new Point[pts.length-1];
+            //StdOut.println("pts:"+pts[i].toString());
+            //StdOut.println("ptsCopy:"+ptsCopy[0].toString()
+            Arrays.sort(ptsCopy);
+            Arrays.sort(ptsCopy,pts[i].slopeOrder());
 
-                    Arrays.sort(temp);
-                    lineSeg[numLineSeg++]=new LineSegment(temp[0],temp[3]);
-                }
-            }
+            if(pts[i].slopeTo(ptsCopy[1])==lastSlope)
+                continue;
+            findSegment(ptsCopy,pts[i]);
         }
     }
 
@@ -52,13 +51,34 @@ public class FastCollinearPoints {
     ret[1]:the start index
     ret[2]:end index
      */
-    private int[] findSegment(Point[] other,Point origin){
+    private void findSegment(Point[] other,Point origin){
         int cnt;
-        int start,end;
+        int start,end=-1;
+
         for(int i=1;i<other.length-2;i++){
             cnt=1;
-            for(int j=i+1;j<other.length;j++){
+            start=i;
+            end=i;
+            if(lastSlope==origin.slopeTo(other[start]))
+                continue;
 
+            lastSlope=origin.slopeTo(other[start]);
+            if(origin.compareTo(other[start])==1)
+                continue;
+            for(int j=i+1;j<other.length;j++){
+                if(origin.slopeTo(other[j])!=origin.slopeTo(other[j-1])){
+                    if(cnt>=3){
+                        lineSeg[numLineSeg++]=new LineSegment(origin,other[end]);
+                    }
+                    cnt=1;
+                    break;
+                }
+                cnt++;
+                end++;
+            }
+
+            if(cnt>=3){
+                lineSeg[numLineSeg++]=new LineSegment(origin,other[end]);
             }
         }
     }
@@ -97,7 +117,7 @@ public class FastCollinearPoints {
         StdDraw.show();
 
         // print and draw the line segments
-        BruteCollinearPoints collinear = new BruteCollinearPoints(points);
+        FastCollinearPoints collinear = new FastCollinearPoints(points);
         for (LineSegment lineseg : collinear.segments()) {
             StdOut.println(lineseg);
             lineseg.draw();
